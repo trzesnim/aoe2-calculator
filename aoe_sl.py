@@ -88,7 +88,7 @@ class Unit:
 def main():
     input1 = get_input(1)
     input2 = get_input(2)
-    #st.write("\n", end="")
+    # st.write("\n", end="")
     content1, boost_techs1 = get_unit_info(input1)
     content2, boost_techs2 = get_unit_info(input2)
     unit1 = set_stats(content1, boost_techs1)
@@ -96,7 +96,7 @@ def main():
     st.write(unit1)
     st.write(unit2)
     st.write(compare(unit1, unit2))
-    #st.write("\n", end="")
+    # st.write("\n", end="")
 
 
 def get_unit_info(unit):
@@ -137,27 +137,20 @@ def check_v(v, n):
     pattern = r"(Dark Age|Feudal Age|Castle Age|Imperial Age)}} (\d)"
     try:
         if attack := dict(re.findall(pattern, v)):
-            while True:
-                try:
-                    AGE_LABELS = {
-                        1: "Dark Age",
-                        2: "Feudal Age",
-                        3: "Castle Age",
-                        4: "Imperial Age",
-                    }
-                    input_age = int(
-                        st.segmented_control(
-                            "Select Age:",
-                            options=[1, 2, 3, 4],
-                            format_func=AGE_LABELS.get,
-                            default=1,
-                        )
-                    )
-                except ValueError:
-                    st.write("Please enter a valid age (1-4).")
-                    continue
-                if input_age in [1, 2, 3, 4]:
-                    break
+            AGE_LABELS = {
+                1: "Dark Age",
+                2: "Feudal Age",
+                3: "Castle Age",
+                4: "Imperial Age",
+            }
+            input_age = int(
+                st.segmented_control(
+                    f"Select Age for {n}:",
+                    options=[1, 2, 3, 4],
+                    format_func=AGE_LABELS.get,
+                    default=1,
+                )
+            )
             age = ages.get(str(input_age))
             for i in range(3):
                 if age not in attack:
@@ -233,15 +226,11 @@ def check_elite(unit):
 
 
 def ask_elite(unit):
-    while True:
-        try:
-            e = st.checkbox("Elite?")
-            if e == True:
-                return 1
-            else:
-                return 2
-        except ValueError:
-            st.write("Please enter 1 or 2. ")
+    e = st.checkbox(f"Elite {unit}?")
+    if e == True:
+        return 1
+    else:
+        return 2
 
 
 def check_bonus(bonus):
@@ -273,9 +262,9 @@ def compare(unit1, unit2):
     bonus1 = bonus_dmg(unit1, unit2)
     bonus2 = bonus_dmg(unit2, unit1)
     ab1, pab1, mab1, rb1, hpb1 = ask_upgrades(unit1, unit2)
-    #st.write("\n", end="")
+    # st.write("\n", end="")
     ab2, pab2, mab2, rb2, hpb2 = ask_upgrades(unit2, unit1)
-    #st.write("\n", end="")
+    # st.write("\n", end="")
     if unit1.p_attack:
         attack1 = (int(unit1.p_attack) + int(ab1)) - (
             int(unit2.pierce_armor) + int(pab2)
@@ -342,53 +331,56 @@ def ask_upgrades(unit, u2):
     if "Fletching" in unit.boost_tech:
         st.write(f"{unit.name} attack upgrades:")
         ATTACK_LABELS = {
-                    0: "None",
-                    1: "Fletching",
-                    2: "Bodkin Arrow",
-                    3: "Bracer",
-                }
+            0: "None",
+            1: "Fletching",
+            2: "Bodkin Arrow",
+            3: "Bracer",
+        }
         attack_bonus = int(
-                    st.segmented_control(
-                        "Attack Bonus",
-                        options=[0, 1, 2, 3],
-                        format_func=ATTACK_LABELS.get,
-                        default=0, key=f"pierce_attack_bonus_{unit.name}"
-                    )
-                )
+            st.segmented_control(
+                "Attack Bonus",
+                options=[0, 1, 2, 3],
+                format_func=ATTACK_LABELS.get,
+                default=0,
+                key=f"pierce_attack_bonus_{unit.name}",
+            )
+        )
     elif "Forging" in unit.boost_tech:
         st.write(f"{unit.name} attack upgrades:")
         ATTACK_LABELS = {
-                    0: "None",
-                    1: "Forging",
-                    2: "Iron Casting",
-                    3: "Blast Furnace",
-                }
+            0: "None",
+            1: "Forging",
+            2: "Iron Casting",
+            3: "Blast Furnace",
+        }
         attack_bonus = int(
-                    st.segmented_control(
-                        "Attack Bonus",
-                        options=[0, 1, 2, 3],
-                        format_func=ATTACK_LABELS.get,
-                        default=0, key=f"melee_attack_bonus_{unit.name}"
-                    )
-                )
+            st.segmented_control(
+                "Attack Bonus",
+                options=[0, 1, 2, 3],
+                format_func=ATTACK_LABELS.get,
+                default=0,
+                key=f"melee_attack_bonus_{unit.name}",
+            )
+        )
         if attack_bonus == 3:
             attack_bonus = 4
     if "Padded Archer Armor" in unit.boost_tech:
         st.write(f"{unit.name} armor upgrades:")
         ARMOR_LABELS = {
-                    0: "None",
-                    1: "Padded Archer Armor",
-                    2: "Leather Archer Armor",
-                    3: "Ring Archer Armor",
-                }
+            0: "None",
+            1: "Padded Archer Armor",
+            2: "Leather Archer Armor",
+            3: "Ring Archer Armor",
+        }
         armor_bonus = int(
-                    st.segmented_control(
-                        "Armor Bonus",
-                        options=[0, 1, 2, 3],
-                        format_func=ARMOR_LABELS.get,
-                        default=0, key=f"archer_armor_bonus_{unit.name}"
-                    )
-                )
+            st.segmented_control(
+                "Armor Bonus",
+                options=[0, 1, 2, 3],
+                format_func=ARMOR_LABELS.get,
+                default=0,
+                key=f"archer_armor_bonus_{unit.name}",
+            )
+        )
         if armor_bonus == 3:
             parmor_bonus = armor_bonus + 1
         else:
@@ -397,19 +389,20 @@ def ask_upgrades(unit, u2):
     if "Scale Barding Armor" in unit.boost_tech:
         st.write(f"{unit.name} armor upgrades:")
         ARMOR_LABELS = {
-                    0: "None",
-                    1: "Scale Barding Armor",
-                    2: "Chain Barding Armor",
-                    3: "Plate Barding Armor",
-                }
+            0: "None",
+            1: "Scale Barding Armor",
+            2: "Chain Barding Armor",
+            3: "Plate Barding Armor",
+        }
         armor_bonus = int(
-                    st.segmented_control(
-                        "Armor Bonus",
-                        options=[0, 1, 2, 3],
-                        format_func=ARMOR_LABELS.get,
-                        default=0, key=f"cav_armor_bonus_{unit.name}"
-                    )
-                )
+            st.segmented_control(
+                "Armor Bonus",
+                options=[0, 1, 2, 3],
+                format_func=ARMOR_LABELS.get,
+                default=0,
+                key=f"cav_armor_bonus_{unit.name}",
+            )
+        )
         if armor_bonus == 3:
             parmor_bonus = armor_bonus + 1
         else:
@@ -418,19 +411,20 @@ def ask_upgrades(unit, u2):
     if "Scale Mail Armor" in unit.boost_tech:
         st.write(f"{unit.name} armor upgrades:")
         ARMOR_LABELS = {
-                    0: "None",
-                    1: "Scale Mail Armor",
-                    2: "Chain Mail Armor",
-                    3: "Plate Mail Armor",
-                }
+            0: "None",
+            1: "Scale Mail Armor",
+            2: "Chain Mail Armor",
+            3: "Plate Mail Armor",
+        }
         armor_bonus = int(
-                    st.segmented_control(
-                        "Armor Bonus",
-                        options=[0, 1, 2, 3],
-                        format_func=ARMOR_LABELS.get,
-                        default=0, key=f"infantry_armor_bonus_{unit.name}"
-                    )
-                )
+            st.segmented_control(
+                "Armor Bonus",
+                options=[0, 1, 2, 3],
+                format_func=ARMOR_LABELS.get,
+                default=0,
+                key=f"infantry_armor_bonus_{unit.name}",
+            )
+        )
         if armor_bonus == 3:
             parmor_bonus = armor_bonus + 1
         else:
@@ -471,7 +465,7 @@ def ask_upgrades(unit, u2):
         if cra == True and "Infantry" in u2.armor_class:
             attack_bonus += 2
     if "Villager" in unit.name:
-        loom = st.checkbox("Loom?", key=f"loom_{unit.name}" )
+        loom = st.checkbox("Loom?", key=f"loom_{unit.name}")
         if loom == True:
             marmor_bonus += 1
             parmor_bonus += 2
