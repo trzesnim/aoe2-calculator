@@ -231,4 +231,5 @@ extra = [
     "Ratha",
     "Shrivamsha Rider",
     "Xianbei Raider",
+    "Urumi Swordsman",
 ]
