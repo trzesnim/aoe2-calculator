@@ -125,6 +125,7 @@ units = [
     "Trebuchet",
     # "Turtle Ship",
     "Two-Handed Swordsman",
+    "Urumi Swordsman",
     "Varangian Guard",
     "Villager",
     "War Elephant",
