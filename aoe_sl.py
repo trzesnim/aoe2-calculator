@@ -1,11 +1,11 @@
 import re
-import sys
 
 import requests
 import streamlit as st
 
 from lists import (
     elite,
+    extra,
     units,
 )
 
@@ -23,23 +23,25 @@ class Unit:
         attack_bonus=None,
         armor_class=None,
         boost_tech=None,
+        elite=False,
     ):
         self._name = name
-        self._hp = check_v(hp, name)
+        self._hp = check_v(hp, name, elite)
         if p_attack:
-            self._p_attack = check_v(p_attack, name)
+            self._p_attack = check_v(p_attack, name, elite)
         else:
             self._p_attack = None
         if m_attack:
-            self._m_attack = check_v(m_attack, name)
+            self._m_attack = check_v(m_attack, name, elite)
         else:
             self._m_attack = None
-        self._rof = check_v(rof, name)
-        self._armor = check_v(armor, name)
-        self._pierce_armor = check_v(pierce_armor, name)
-        self._attack_bonus = check_bonus(attack_bonus)
+        self._rof = check_v(rof, name, elite)
+        self._armor = check_v(armor, name, elite)
+        self._pierce_armor = check_v(pierce_armor, name, elite)
+        self._attack_bonus = check_bonus(attack_bonus, elite)
         self._armor_class = check_class(armor_class)
         self._boost_tech = boost_tech
+        self._elite = elite
 
     def __str__(self):
         return f"Name: {self.name}\nHP: {self.hp}\nPAttack: {self.p_attack}\nMAttack: {self.m_attack}\nROF: {self.rof}\nArmor: {self.armor}\nPierceArmor: {self.pierce_armor}\nAttack Bonus: {self.attack_bonus}\nArmor Class: {self.armor_class}\n"
@@ -86,13 +88,14 @@ class Unit:
 
 
 def main():
+    st.write("# Age of Empires 2 1v1 Battle Calculator")
     input1 = get_input(1)
     input2 = get_input(2)
     # st.write("\n", end="")
     content1, boost_techs1 = get_unit_info(input1)
     content2, boost_techs2 = get_unit_info(input2)
-    unit1 = set_stats(content1, boost_techs1)
-    unit2 = set_stats(content2, boost_techs2)
+    unit1 = set_stats(content1, boost_techs1, 1)
+    unit2 = set_stats(content2, boost_techs2, 2)
     st.write(unit1)
     st.write(unit2)
     st.write(compare(unit1, unit2))
@@ -109,7 +112,7 @@ def get_unit_info(unit):
     r = response.json()
     query = r["query"]
     if "'missing': True" in str(query):
-        sys.exit("Unit not found")
+        st.stop()
     content = query["pages"][0]["revisions"][0]["content"]
     if (
         "Disambig" in content or "disambig" in content or "ForNoLink" in content
@@ -132,7 +135,7 @@ def get_unit_info(unit):
     )
 
 
-def check_v(v, n):
+def check_v(v, n, elite):
     ages = {"1": "Dark Age", "2": "Feudal Age", "3": "Castle Age", "4": "Imperial Age"}
     pattern = r"(Dark Age|Feudal Age|Castle Age|Imperial Age)}} (\d)"
     try:
@@ -149,6 +152,7 @@ def check_v(v, n):
                     options=[1, 2, 3, 4],
                     format_func=AGE_LABELS.get,
                     default=1,
+                    key=f"age_select_{n}_{v}",
                 )
             )
             age = ages.get(str(input_age))
@@ -160,19 +164,22 @@ def check_v(v, n):
             return attack.get(age)
     except TypeError:
         return None
-    pattern = r"^{{tt\|([+-]?[\d.]+)\|.+$"
-    if match := re.search(pattern, v):
-        stat = match.group(1)
+    clean_v = re.sub(r"\{\{tt\|([^|]+)\|.*?\}\}", r"\1", v)
+    ptrn = r"(.+?)\s*,\s*(.+)"
+    if match0 := re.search(ptrn, clean_v):
+        stat = match0.group(2) if elite else match0.group(1)
     else:
-        stat = v
+        stat = clean_v
     if mtch := re.search(r"<br />(\d+) <small>", stat):
         stat = mtch.group(1)
-    if match2 := re.search(r"^(\d+).+\([xX×](\d)\)\s*\|.+", stat):
+    if match2 := re.search(r"(\d+).*?\([xX×\u00d7]\s*(\d+)\)", stat):
         stat = int(match2.group(1)) + int(match2.group(2))
+    if num_match := re.search(r"([+-]?[\d.]+)", str(stat)):
+        stat = num_match.group(1)
     return stat
 
 
-def set_stats(content, techs):
+def set_stats(content, techs, n):
     pattern = (
         r"(Name|HP|PAttack|MAttack|ROF|Armor|PierceArmor|AttackBonus|Class) = (.+)\n"
     )
@@ -185,6 +192,13 @@ def set_stats(content, techs):
         attack["Name"] = "Xolotl Warrior"
         for k, v in attack.items():
             attack[k] = re.sub(r"<.+", "", v)
+    el = False
+    if attack.get("Name") in elite:
+        el = st.checkbox(
+            f"Elite {attack.get('Name')}?", key=f"check_{n}_elite_{attack.get('Name')}"
+        )
+        if el:
+            attack["Name"] = f"Elite {attack.get('Name')}"
     return Unit(
         attack.get("Name"),
         attack.get("HP"),
@@ -196,6 +210,7 @@ def set_stats(content, techs):
         attack.get("AttackBonus"),
         attack.get("Class"),
         techs,
+        el,
     )
 
 
@@ -204,8 +219,8 @@ def get_input(n):
     u = unit.title()
     if u not in units:
         st.write("Enter a valid unit name")
-    if u in elite:
-        st.warning("Unique units are not currently supported.")
+    if u in extra:
+        st.warning("Units with unique mechanics are not fully supported.")
         st.stop()
     return u
 
@@ -233,12 +248,16 @@ def ask_elite(unit):
         return 2
 
 
-def check_bonus(bonus):
+def check_bonus(bonus, elite):
     if not bonus:
         return None
-    pattern = r"([+-]?\d+)\b[^<\n]*?vs\.?[^<\n]*?2class\|([^}|]+)"
-    b = {k: v for v, k in re.findall(pattern, bonus)}
-    b = {k.title(): v for k, v in b.items()}
+    pattern = r"([+-]?\d+(?:\s*,\s*[+-]?\d+)?).*?vs\.?\s*.*?2class\|([^}|]+)"
+    matches = re.findall(pattern, str(bonus))
+    b = {}
+    for nums, cls in matches:
+        parts = [p.strip() for p in nums.split(",")]
+        val = parts[1] if (elite and len(parts) > 1) else parts[0]
+        b[cls.strip().title()] = int(val)
     return b
 
 
@@ -261,9 +280,9 @@ def check_class(bonus):
 def compare(unit1, unit2):
     bonus1 = bonus_dmg(unit1, unit2)
     bonus2 = bonus_dmg(unit2, unit1)
-    ab1, pab1, mab1, rb1, hpb1 = ask_upgrades(unit1, unit2)
+    ab1, pab1, mab1, rb1, hpb1 = ask_upgrades(unit1, unit2, 1)
     # st.write("\n", end="")
-    ab2, pab2, mab2, rb2, hpb2 = ask_upgrades(unit2, unit1)
+    ab2, pab2, mab2, rb2, hpb2 = ask_upgrades(unit2, unit1, 2)
     # st.write("\n", end="")
     if unit1.p_attack:
         attack1 = (int(unit1.p_attack) + int(ab1)) - (
@@ -322,7 +341,7 @@ def bonus_dmg(u1, u2):
     return bonus
 
 
-def ask_upgrades(unit, u2):
+def ask_upgrades(unit, u2, n):
     attack_bonus = 0
     parmor_bonus = 0
     marmor_bonus = 0
@@ -342,7 +361,7 @@ def ask_upgrades(unit, u2):
                 options=[0, 1, 2, 3],
                 format_func=ATTACK_LABELS.get,
                 default=0,
-                key=f"pierce_attack_bonus_{unit.name}",
+                key=f"pierce_attack_bonus_{n}_{unit.name}",
             )
         )
     elif "Forging" in unit.boost_tech:
@@ -359,7 +378,7 @@ def ask_upgrades(unit, u2):
                 options=[0, 1, 2, 3],
                 format_func=ATTACK_LABELS.get,
                 default=0,
-                key=f"melee_attack_bonus_{unit.name}",
+                key=f"melee_attack_bonus_{n}_{unit.name}",
             )
         )
         if attack_bonus == 3:
@@ -378,7 +397,7 @@ def ask_upgrades(unit, u2):
                 options=[0, 1, 2, 3],
                 format_func=ARMOR_LABELS.get,
                 default=0,
-                key=f"archer_armor_bonus_{unit.name}",
+                key=f"archer_armor_bonus_{n}_{unit.name}",
             )
         )
         if armor_bonus == 3:
@@ -400,7 +419,7 @@ def ask_upgrades(unit, u2):
                 options=[0, 1, 2, 3],
                 format_func=ARMOR_LABELS.get,
                 default=0,
-                key=f"cav_armor_bonus_{unit.name}",
+                key=f"cav_armor_bonus_{n}_{unit.name}",
             )
         )
         if armor_bonus == 3:
@@ -422,7 +441,7 @@ def ask_upgrades(unit, u2):
                 options=[0, 1, 2, 3],
                 format_func=ARMOR_LABELS.get,
                 default=0,
-                key=f"infantry_armor_bonus_{unit.name}",
+                key=f"infantry_armor_bonus_{n}_{unit.name}",
             )
         )
         if armor_bonus == 3:
@@ -431,7 +450,7 @@ def ask_upgrades(unit, u2):
             parmor_bonus = armor_bonus
         marmor_bonus = armor_bonus
     if "Chemistry" in unit.boost_tech:
-        chem = st.checkbox("Chemistry?", key=f"chemistry_{unit.name}")
+        chem = st.checkbox("Chemistry?", key=f"chemistry_{n}_{unit.name}")
         if chem == True:
             attack_bonus += 1
     if (
@@ -439,33 +458,35 @@ def ask_upgrades(unit, u2):
         and "Skirmisher" not in unit.name
         and "Genitour" not in unit.name
     ):
-        thumb = st.checkbox("Thumb Ring?", key=f"thumb_ring_{unit.name}")
+        thumb = st.checkbox("Thumb Ring?", key=f"thumb_ring_{n}_{unit.name}")
         if thumb == True:
             if "Cavalry Archer" in unit.name:
                 rof_bonus = 0.9
             else:
                 rof_bonus = 0.85
     if "Bloodlines" in unit.boost_tech:
-        blood = st.checkbox("Bloodlines?", key=f"bloodlines_{unit.name}")
+        blood = st.checkbox("Bloodlines?", key=f"bloodlines_{n}_{unit.name}")
         if blood == True:
             hp_bonus = 20
     if "Parthian Tactics" in unit.boost_tech:
-        parth = st.checkbox("Parthian Tactics?", key=f"parthian_tactics_{unit.name}")
+        parth = st.checkbox(
+            "Parthian Tactics?", key=f"parthian_tactics_{n}_{unit.name}"
+        )
         if parth == True:
             marmor_bonus += 1
             parmor_bonus += 1
             if "Spearmen" in u2.armor_class:
                 attack_bonus += 2
     if "Gambesons" in unit.boost_tech:
-        gamb = st.checkbox("Gambesons?", key=f"gambesons_{unit.name}")
+        gamb = st.checkbox("Gambesons?", key=f"gambesons_{n}_{unit.name}")
         if gamb == True:
             parmor_bonus += 1
     if "Cranequins" in unit.boost_tech:
-        cra = st.checkbox("Cranequins?", key=f"cranequins_{unit.name}")
+        cra = st.checkbox("Cranequins?", key=f"cranequins_{n}_{unit.name}")
         if cra == True and "Infantry" in u2.armor_class:
             attack_bonus += 2
     if "Villager" in unit.name:
-        loom = st.checkbox("Loom?", key=f"loom_{unit.name}")
+        loom = st.checkbox("Loom?", key=f"loom_{n}_{unit.name}")
         if loom == True:
             marmor_bonus += 1
             parmor_bonus += 2

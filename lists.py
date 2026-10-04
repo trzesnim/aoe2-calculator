@@ -123,7 +123,7 @@ units = [
     "Traction Trebuchet",
     "Trade Cart",
     "Trebuchet",
-    "Turtle Ship",
+    # "Turtle Ship",
     "Two-Handed Swordsman",
     "Varangian Guard",
     "Villager",
@@ -213,4 +213,22 @@ elite = [
     "Woad Raider",
     "Xianbei Raider",
     # "Xolotl Warrior",
+]
+
+extra = [
+    "Flemish Militia",
+    "Serjeant",
+    "Chu Ko Nu",
+    "Composite Bowman",
+    "Coustillier",
+    "Hussite Wagon",
+    "Jian Swordsman",
+    "Kipchak",
+    "Konnik",
+    "Leitis",
+    "Obuch",
+    "Organ Gun",
+    "Ratha",
+    "Shrivamsha Rider",
+    "Xianbei Raider",
 ]
