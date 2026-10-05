@@ -258,6 +258,8 @@ def check_bonus(bonus, elite):
         parts = [p.strip() for p in nums.split(",")]
         val = parts[1] if (elite and len(parts) > 1) else parts[0]
         b[cls.strip().title()] = int(val)
+    if "Mameluke" in b:
+        b["Mamelukes"] = b.pop("Mameluke")
     return b
 
 
@@ -273,6 +275,8 @@ def check_class(bonus):
             b[i] = "Gunpowder Units"
         if k == "Unique unit":
             b[i] = "Unique Units"
+        if k == "Mameluke:":
+            b[i] = "Mamelukes"
     b = [i.title() for i in b]
     return b
 
